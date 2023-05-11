@@ -1,0 +1,60 @@
+version: "3.9"
+
+services:
+  nginx:
+    image: nginx:stable-alpine
+    ports:
+      - "4000:80"
+    volumes:
+      - ./nginx/default.conf:/etc/nginx/conf.d/default.conf
+    networks:
+      - public
+    depends_on:
+      - kuber-api
+
+  kuber-api:
+    image: kenule500/kuber-api:v1
+    build:
+      context: kuber-api
+      dockerfile: ./Dockerfile
+    environment:
+      - NODE_ENV=development
+      - MONGODB_USERNAME=${MONGODB_USERNAME}
+      - MONGODB_PASSWORD=${MONGODB_PASSWORD}
+      - MONGODB_DATABASE=${MONGODB_DATABASE}
+      - MONGODB_PORT=${MONGODB_PORT}
+      - MONGODB_HOST=${MONGODB_HOST}
+    volumes:
+      - kuber-api:/app/kuber-apidata
+      - /app/node_modules
+      - ./kuber-api:/app
+    ports:
+      - 3000:3000
+    networks:
+      - public
+      - private
+    depends_on:
+      - mongodb
+    command: npm run dev
+
+  mongodb:
+    image: mongo
+    environment:
+      - MONGO_INITDB_ROOT_USERNAME=${MONGODB_USERNAME}
+      - MONGO_INITDB_ROOT_PASSWORD=${MONGODB_PASSWORD}
+      - MONGO_INITDB_DATABASE=${MONGODB_DATABASE}
+      - MONGODB_HOST=${MONGODB_HOST}
+    ports:
+      - "27017:27017"
+    volumes:
+      - db:/data/db
+    networks:
+      - private
+    restart: always
+
+networks:
+  public:
+  private:
+volumes:
+  kuber-api:
+  db:
